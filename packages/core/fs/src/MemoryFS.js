@@ -1,4 +1,5 @@
 // @flow
+/* global MessageChannel:readonly */
 
 import type {FileSystem, FileOptions, ReaddirOptions, Encoding} from './types';
 import type {FilePath} from '@parcel/types';
@@ -16,6 +17,27 @@ import WorkerFarm, {Handle} from '@parcel/workers';
 import nullthrows from 'nullthrows';
 import EventEmitter from 'events';
 import {findAncestorFile, findNodeModule, findFirstFile} from './find';
+
+let SharedBuffer: Class<ArrayBuffer> | Class<SharedArrayBuffer>;
+// $FlowFixMe[prop-missing]
+if (process.browser) {
+  SharedBuffer = ArrayBuffer;
+  // Safari has removed the constructor
+  if (typeof SharedArrayBuffer !== 'undefined') {
+    let channel = new MessageChannel();
+    try {
+      // Firefox might throw when sending the Buffer over a MessagePort
+      channel.port1.postMessage(new SharedArrayBuffer(0));
+      SharedBuffer = SharedArrayBuffer;
+    } catch (_) {
+      // NOOP
+    }
+    channel.port1.close();
+    channel.port2.close();
+  }
+} else {
+  SharedBuffer = SharedArrayBuffer;
+}
 
 const instances: Map<number, MemoryFS> = new Map();
 let id = 0;
@@ -138,10 +160,7 @@ export class MemoryFS implements FileSystem {
     // get realpath by following symlinks
     if (realpath) {
       let {root, dir, base} = path.parse(filePath);
-      let parts = dir
-        .slice(root.length)
-        .split(path.sep)
-        .concat(base);
+      let parts = dir.slice(root.length).split(path.sep).concat(base);
       let res = root;
       for (let part of parts) {
         res = path.join(res, part);
@@ -557,11 +576,13 @@ export class MemoryFS implements FileSystem {
   async _sendWorkerEvent(event: WorkerEvent) {
     // Wait for worker instances to register their handles
     while (this._workerHandles.length < this._numWorkerInstances) {
-      await new Promise(resolve => this._workerRegisterResolves.push(resolve));
+      await new Promise((resolve) =>
+        this._workerRegisterResolves.push(resolve),
+      );
     }
 
     await Promise.all(
-      this._workerHandles.map(workerHandle =>
+      this._workerHandles.map((workerHandle) =>
         this.farm.workerApi.runHandle(workerHandle, [event]),
       ),
     );
@@ -607,7 +628,7 @@ export class MemoryFS implements FileSystem {
     let ignore = opts.ignore;
     if (ignore) {
       events = events.filter(
-        event => !ignore.some(i => event.path.startsWith(i + path.sep)),
+        (event) => !ignore.some((i) => event.path.startsWith(i + path.sep)),
       );
     }
 
@@ -651,7 +672,7 @@ class Watcher {
     let ignore = this.options.ignore;
     if (ignore) {
       events = events.filter(
-        event => !ignore.some(i => event.path.startsWith(i + path.sep)),
+        (event) => !ignore.some((i) => event.path.startsWith(i + path.sep)),
       );
     }
 
@@ -693,12 +714,12 @@ class ReadStream extends Readable {
 
     this.reading = true;
     this.fs.readFile(this.filePath).then(
-      res => {
+      (res) => {
         this.bytesRead += res.byteLength;
         this.push(res);
         this.push(null);
       },
-      err => {
+      (err) => {
         this.emit('error', err);
       },
     );
@@ -907,15 +928,12 @@ class Directory extends Entry {
 }
 
 function makeShared(contents: Buffer | string): Buffer {
-  if (
-    typeof contents !== 'string' &&
-    contents.buffer instanceof SharedArrayBuffer
-  ) {
+  if (typeof contents !== 'string' && contents.buffer instanceof SharedBuffer) {
     return contents;
   }
 
   let length = Buffer.byteLength(contents);
-  let shared = new SharedArrayBuffer(length);
+  let shared = new SharedBuffer(length);
   let buffer = Buffer.from(shared);
   if (typeof contents === 'string') {
     buffer.write(contents);
@@ -939,7 +957,7 @@ class WorkerFS extends MemoryFS {
       WorkerFarm.getWorkerApi().runHandle(handle, [methodName, args]);
 
     this.handleFn('_registerWorker', [
-      WorkerFarm.getWorkerApi().createReverseHandle(event => {
+      WorkerFarm.getWorkerApi().createReverseHandle((event) => {
         switch (event.type) {
           case 'writeFile':
             this.files.set(event.path, event.entry);
