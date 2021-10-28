@@ -304,7 +304,7 @@ export default class Parcel {
           options,
         ),
         buildTime: Date.now() - startTime,
-        requestBundle: async bundle => {
+        requestBundle: async (bundle) => {
           let bundleNode = bundleGraph._graph.getNodeByContentKey(bundle.id);
           invariant(bundleNode?.type === 'bundle', 'Bundle does not exist');
 
@@ -382,7 +382,7 @@ export default class Parcel {
         }
 
         let isInvalid = this.#requestTracker.respondToFSEvents(
-          events.map(e => ({
+          events.map((e) => ({
             type: e.type,
             path: toProjectPath(resolvedOptions.projectRoot, e.path),
           })),
@@ -447,6 +447,6 @@ export function createWorkerFarm(
 ): WorkerFarm {
   return new WorkerFarm({
     ...options,
-    workerPath: require.resolve('./worker'),
+    workerPath: '@parcel/core/src/worker.js', //require.resolve('./worker'),
   });
 }

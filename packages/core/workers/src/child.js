@@ -12,6 +12,7 @@ import type {
 import type {Async, IDisposable} from '@parcel/types';
 import type {SharedReference, WorkerApi} from './WorkerFarm';
 
+import * as worker from '@parcel/core/src/worker.js';
 import invariant from 'assert';
 import nullthrows from 'nullthrows';
 import Logger, {patchConsole, unpatchConsole} from '@parcel/logger';
@@ -46,7 +47,7 @@ export class Child {
 
   constructor(ChildBackend: Class<ChildImpl>) {
     this.child = new ChildBackend(
-      m => {
+      (m) => {
         this.messageListener(m);
       },
       () => this.handleEnd(),
@@ -54,7 +55,7 @@ export class Child {
 
     // Monitior all logging events inside this child process and forward to
     // the main process via the bus.
-    this.loggerDisposable = Logger.onLog(event => {
+    this.loggerDisposable = Logger.onLog((event) => {
       bus.emit('logEvent', event);
     });
   }
@@ -96,8 +97,9 @@ export class Child {
   }
 
   async childInit(module: string, childId: number): Promise<void> {
+    this.module = worker;
     // $FlowFixMe this must be dynamic
-    this.module = require(module);
+    // this.module = require(module);
     this.childId = childId;
 
     if (this.module.childInit != null) {
