@@ -114,12 +114,12 @@ type RequestGraphNode =
   | OptionNode;
 
 export type RunAPI = {|
-  invalidateOnFileCreate: InternalFileCreateInvalidation => void,
-  invalidateOnFileDelete: ProjectPath => void,
-  invalidateOnFileUpdate: ProjectPath => void,
+  invalidateOnFileCreate: (InternalFileCreateInvalidation) => void,
+  invalidateOnFileDelete: (ProjectPath) => void,
+  invalidateOnFileUpdate: (ProjectPath) => void,
   invalidateOnStartup: () => void,
-  invalidateOnEnvChange: string => void,
-  invalidateOnOptionChange: string => void,
+  invalidateOnEnvChange: (string) => void,
+  invalidateOnOptionChange: (string) => void,
   getInvalidations(): Array<RequestInvalidation>,
   storeResult: (result: mixed, cacheKey?: string) => void,
   getRequestResult<T>(contentKey: ContentKey): Async<?T>,
@@ -313,7 +313,11 @@ export class RequestGraph extends ContentGraph<
     for (let nodeId of this.envNodeIds) {
       let node = nullthrows(this.getNode(nodeId));
       invariant(node.type === 'env');
-      if (env[node.value.key] !== node.value.value) {
+      if (
+        env[node.value.key] !== node.value.value &&
+        // workaround for https://github.com/msgpack/msgpack-javascript/issues/150
+        !(env[node.value.key] == null && node.value.value == null)
+      ) {
         let parentNodes = this.getNodeIdsConnectedTo(
           nodeId,
           requestGraphEdgeTypes.invalidated_by_update,
@@ -566,7 +570,7 @@ export class RequestGraph extends ContentGraph<
       requestGraphEdgeTypes.invalidated_by_update,
     );
     return invalidations
-      .map(nodeId => {
+      .map((nodeId) => {
         let node = nullthrows(this.getNode(nodeId));
         switch (node.type) {
           case 'file':
@@ -590,7 +594,7 @@ export class RequestGraph extends ContentGraph<
       requestGraphEdgeTypes.subrequest,
     );
 
-    return subRequests.map(nodeId => {
+    return subRequests.map((nodeId) => {
       let node = nullthrows(this.getNode(nodeId));
       invariant(node.type === 'request');
       return node.value;
@@ -710,7 +714,7 @@ export class RequestGraph extends ContentGraph<
           let above = this.getNodeIdsConnectedTo(
             fileNameNodeId,
             requestGraphEdgeTypes.invalidated_by_create_above,
-          ).map(nodeId => {
+          ).map((nodeId) => {
             let node = nullthrows(this.getNode(nodeId));
             invariant(node.type === 'file');
             return node;
@@ -967,16 +971,16 @@ export default class RequestTracker {
   ): {|api: RunAPI, subRequestContentKeys: Set<ContentKey>|} {
     let subRequestContentKeys = new Set<ContentKey>();
     let api: RunAPI = {
-      invalidateOnFileCreate: input =>
+      invalidateOnFileCreate: (input) =>
         this.graph.invalidateOnFileCreate(requestId, input),
-      invalidateOnFileDelete: filePath =>
+      invalidateOnFileDelete: (filePath) =>
         this.graph.invalidateOnFileDelete(requestId, filePath),
-      invalidateOnFileUpdate: filePath =>
+      invalidateOnFileUpdate: (filePath) =>
         this.graph.invalidateOnFileUpdate(requestId, filePath),
       invalidateOnStartup: () => this.graph.invalidateOnStartup(requestId),
-      invalidateOnEnvChange: env =>
+      invalidateOnEnvChange: (env) =>
         this.graph.invalidateOnEnvChange(requestId, env, this.options.env[env]),
-      invalidateOnOptionChange: option =>
+      invalidateOnOptionChange: (option) =>
         this.graph.invalidateOnOptionChange(
           requestId,
           option,
@@ -992,7 +996,7 @@ export default class RequestTracker {
         return this.getRequestResult<T>(contentKey, ifMatch);
       },
       getRequestResult: <T>(id): Async<?T> => this.getRequestResult<T>(id),
-      canSkipSubrequest: contentKey => {
+      canSkipSubrequest: (contentKey) => {
         if (
           this.graph.hasContentKey(contentKey) &&
           this.hasValidResult(this.graph.getNodeIdByContentKey(contentKey))
@@ -1067,7 +1071,9 @@ export default class RequestTracker {
 }
 
 export function getWatcherOptions(options: ParcelOptions): WatcherOptions {
-  let vcsDirs = ['.git', '.hg'].map(dir => path.join(options.projectRoot, dir));
+  let vcsDirs = ['.git', '.hg'].map((dir) =>
+    path.join(options.projectRoot, dir),
+  );
   let ignore = [options.cacheDir, ...vcsDirs];
   return {ignore};
 }
@@ -1098,7 +1104,7 @@ async function loadRequestGraph(options): Async<RequestGraph> {
     requestGraph.invalidateEnvNodes(options.env);
     requestGraph.invalidateOptionNodes(options);
     requestGraph.respondToFSEvents(
-      events.map(e => ({
+      events.map((e) => ({
         type: e.type,
         path: toProjectPath(options.projectRoot, e.path),
       })),

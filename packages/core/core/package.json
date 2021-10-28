@@ -24,6 +24,7 @@
     "check-ts": "tsc --noEmit index.d.ts"
   },
   "dependencies": {
+    "@msgpack/msgpack": "^2.7.1",
     "@parcel/cache": "^2.0.0",
     "@parcel/diagnostic": "^2.0.0",
     "@parcel/events": "^2.0.0",
@@ -52,5 +53,8 @@
   "devDependencies": {
     "graphviz": "^0.0.9",
     "tempy": "^0.2.1"
+  },
+  "browser": {
+    "./src/serializerCore.js": "./src/serializerCore.browser.js"
   }
 }

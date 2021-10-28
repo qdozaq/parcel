@@ -1888,6 +1888,11 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
+"@msgpack/msgpack@^2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@msgpack/msgpack/-/msgpack-2.7.1.tgz#f01954baadc502f3c82e9c3f72c740ce65eae1cc"
+  integrity sha512-ApwiSL2c9ObewdOE/sqt788P1C5lomBOHyO8nUBCr4ofErBCnYQ003NtJ8lS9OQZc11ximkbmgAZJjB8y6cCdA==
+
 "@napi-rs/cli@1.0.4":
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/@napi-rs/cli/-/cli-1.0.4.tgz#b2d987cd0da1791cfd74adca4e5637029bb2758f"
