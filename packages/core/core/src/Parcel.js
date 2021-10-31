@@ -304,7 +304,7 @@ export default class Parcel {
           options,
         ),
         buildTime: Date.now() - startTime,
-        requestBundle: async (bundle) => {
+        requestBundle: async bundle => {
           let bundleNode = bundleGraph._graph.getNodeByContentKey(bundle.id);
           invariant(bundleNode?.type === 'bundle', 'Bundle does not exist');
 
@@ -346,6 +346,7 @@ export default class Parcel {
         createValidationRequest({optionsRef: this.#optionsRef, assetRequests}),
         {force: assetRequests.length > 0},
       );
+      await options.cache.flush();
       return event;
     } catch (e) {
       if (e instanceof BuildAbortError) {
@@ -382,7 +383,7 @@ export default class Parcel {
         }
 
         let isInvalid = this.#requestTracker.respondToFSEvents(
-          events.map((e) => ({
+          events.map(e => ({
             type: e.type,
             path: toProjectPath(resolvedOptions.projectRoot, e.path),
           })),

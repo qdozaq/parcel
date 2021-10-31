@@ -36,6 +36,9 @@ export class FSCache implements Cache {
     await Promise.all(dirPromises);
   }
 
+  flush(): Promise<void> {
+    return Promise.resolve();
+  }
   _getCachePath(cacheId: string): FilePath {
     return path.join(this.dir, cacheId.slice(0, 2), cacheId.slice(2));
   }
@@ -98,6 +101,14 @@ export class FSCache implements Cache {
       await this.fs.writeFile(blobPath, data);
     } catch (err) {
       logger.error(err, '@parcel/cache');
+    }
+  }
+
+  async setBlobs(
+    entries: $ReadOnlyArray<[string, Buffer | string]>,
+  ): Promise<void> {
+    for (let [key, value] of entries) {
+      await this.setBlob(key, value);
     }
   }
 }

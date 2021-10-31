@@ -29,6 +29,10 @@ export class LMDBCache implements Cache {
     return Promise.resolve();
   }
 
+  flush(): Promise<void> {
+    return Promise.resolve();
+  }
+
   serialize(): {|dir: FilePath|} {
     return {
       dir: this.dir,
@@ -74,6 +78,14 @@ export class LMDBCache implements Cache {
 
   async setBlob(key: string, contents: Buffer | string): Promise<void> {
     await this.store.put(key, contents);
+  }
+
+  async setBlobs(
+    entries: $ReadOnlyArray<[string, Buffer | string]>,
+  ): Promise<void> {
+    for (let [key, value] of entries) {
+      await this.setBlob(key, value);
+    }
   }
 
   getBuffer(key: string): Promise<?Buffer> {

@@ -13,7 +13,7 @@ import {makeDeferredWithPromise} from '@parcel/utils';
 // import {NodePackageManager} from '@parcel/package-manager';
 import configRepl from '@parcel/config-repl';
 import {generatePackageJson, nthIndex} from '../utils/';
-// import {IDBCache} from '@parcel/cache';
+import {IDBCache, FSCache, LayeredCache} from '@parcel/cache';
 import path from 'path';
 import {yarnInstall} from './yarn.js';
 import {BrowserPackageManager} from './BrowserPackageManager.js';
@@ -190,6 +190,11 @@ async function setup(assets, options) {
     inputFS: fs,
     outputFS: fs,
     // cache: new IDBCache(),
+    cache: new LayeredCache(
+      new FSCache(fs, PathUtils.CACHE_DIR),
+      new IDBCache(),
+      Infinity,
+    ),
     defaultTargetOptions: {
       distDir: PathUtils.DIST_DIR,
       publicUrl: options.publicUrl || undefined,
