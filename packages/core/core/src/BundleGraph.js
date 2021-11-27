@@ -1312,7 +1312,6 @@ export default class BundleGraph {
     for (let dep of deps) {
       let depSymbols = dep.symbols;
       if (!depSymbols) {
-        found = true;
         continue;
       }
       // If this is a re-export, find the original module.
